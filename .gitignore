@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+venv/
+.env
+
+# Large / generated files
+models/*.pkl
+
+# OS
+.DS_Store
+
