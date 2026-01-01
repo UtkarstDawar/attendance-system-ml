@@ -2,12 +2,15 @@ import cv2
 import pickle
 import numpy as np
 from insightface.app import FaceAnalysis
+from deepface import DeepFace
 from attendance_logger import mark_attendance
 
+# ---------------- CONFIG ----------------
 EMBEDDINGS_PATH = "models/embeddings.pkl"
 THRESHOLD = 0.5  # cosine similarity threshold
+# ---------------------------------------
 
-# Load embeddings
+# Load stored embeddings
 with open(EMBEDDINGS_PATH, "rb") as f:
     db = pickle.load(f)
 
@@ -21,6 +24,8 @@ def cosine_similarity(a, b):
 cap = cv2.VideoCapture(0)
 marked_today = set()
 
+print("Starting Attendance System with Emotion Detection...")
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -30,10 +35,10 @@ while True:
 
     for face in faces:
         emb = face.embedding
-
         best_match = None
         best_score = -1
 
+        # Compare embeddings
         for item in db:
             score = cosine_similarity(emb, item["embedding"])
             if score > best_score:
@@ -42,19 +47,39 @@ while True:
 
         x1, y1, x2, y2 = map(int, face.bbox)
 
-        if best_score > THRESHOLD:
-            label = f"{best_match} ({best_score:.2f})"
+        # -------- Emotion Detection --------
+        face_img = frame[y1:y2, x1:x2]
+        try:
+            emotion_result = DeepFace.analyze(
+                face_img,
+                actions=["emotion"],
+                enforce_detection=False
+            )
+            emotion = emotion_result[0]["dominant_emotion"]
+        except:
+            emotion = "unknown"
+        # ----------------------------------
 
-            # Avoid multiple marking
+        if best_score > THRESHOLD:
+            label = f"{best_match} | {emotion}"
+
             if best_match not in marked_today:
-                mark_attendance(best_match, "unknown")
+                mark_attendance(best_match, emotion)
                 marked_today.add(best_match)
         else:
             label = "Unknown"
 
+        # Draw bounding box
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(frame, label, (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        cv2.putText(
+            frame,
+            label,
+            (x1, y1 - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (0, 255, 0),
+            2
+        )
 
     cv2.imshow("Attendance System", frame)
 
