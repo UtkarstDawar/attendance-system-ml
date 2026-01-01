@@ -7,7 +7,7 @@ ATTENDANCE_FILE = os.path.join(ATTENDANCE_DIR, "attendance.csv")
 
 # Attendance allowed time window
 START_TIME = time(9, 30)   # 9:30 AM
-END_TIME = time(23, 0)     # 11:00 PM
+END_TIME = time(10, 0)     # 10:00 AM
 
 
 def mark_attendance(student_id, emotion):
